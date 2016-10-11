@@ -218,9 +218,9 @@
 				var i = $("#param-table tr").length;
 				$("#param-table").append($(
 					'<tr>'
-					+'	<td><input type="text" name="fileparam'+ i +'" id="fileparam'+ i +'" placeholder="文件域ID" /></td>'
+					+'	<td><input type="text" name="fileparam" id="fileparam" placeholder="文件域ID" /></td>'
 					+'	<td>'
-					+'		<input type="file" name="file'+ i +'" id="file'+ i +'"/>'
+					+'		<input type='file" name="file" id="" multiple="multiple"/>'
 					+'		<span class="del-param" title="删除参数">×</span>'
 					+'	</td>'
 					+'</tr>'
@@ -321,14 +321,6 @@
 				return params;
 			}
 			
-			function getFilesId() {
-				var fileIds = [];
-				$.each($("input[type=file]"), function() {
-					fileIds.push($(this).attr("id"));
-				});
-				return fileIds;
-			}
-			
 			function sendRequest() {
 				var type = $(".request-button.checked").attr("data-id");
 				var url = $("#url").val().trim();
@@ -343,14 +335,13 @@
 				parseUrl(url);
 				if ($("input[type=file]").length) {
 					//document.domain = url.match(/http[s]?:\/\/(.*?)([:\/]|$)/)[1];
-					var fileIds = getFilesId();
-					console.log(fileIds);
+					var fileId = $("input[type=file]").attr("id");
 					$.ajaxFileUpload({
 						url:url,
 						type:"POST",
 						dataType:"JSON",
 						data:params,
-						fileElementId:fileIds,
+						fileElementId:fileId,
 						success: function(data) {
 							$(".loading").hide();
 							$response.empty().append(formatJsonStr(data));
