@@ -338,6 +338,7 @@
 				$(".loading").show();
 				
 				if ($("input[type=file]").length && $("#fileparam").val()) {
+					// 有文件
 					$("#paramForm").remove();
 					var form = "<form id='paramForm'>";
 					for (var p in params) {
