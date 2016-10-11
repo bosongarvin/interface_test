@@ -119,7 +119,7 @@
 				display:inline-block;
 			}
 			.interface-test .test-section .buttons {
-				margin-top:10px;text-align:center;
+				margin-top:10px;text-align:left;
 			}
 			.interface-test .test-section .buttons .button {
 				display: inline-block;
@@ -184,12 +184,17 @@
 						</tr>
 					</table>
 					<div class="buttons">
-						<span id="type-json" class="button type-button checked" data-id="JSON">JSON</span>
-						<span id="type-jsonp" class="button type-button" data-id="JSONP">JSONP</span>
-						<span id="request-get" class="button request-button checked" data-id="GET">GET</span>
-						<span id="request-post" class="button request-button" data-id="POST">POST</span>
-						<span id="add-param" class="button" title="试试键盘 'Alt + ='或'Alt + +'添加参数">添加参数</span>
-						<span id="send-request" class="button">发送请求</span>
+						<p>
+							<span id="type-json" class="button type-button checked" data-id="JSON">同域</span>
+							<span id="type-jsonp" class="button type-button" data-id="JSONP">跨域</span>
+							<span id="request-get" class="button request-button checked" data-id="GET">GET</span>
+							<span id="request-post" class="button request-button" data-id="POST">POST</span>
+						</p>
+						<p>
+							<span id="add-param" class="button" title="试试键盘 'Alt + ='或'Alt + +'添加参数">添加参数</span>
+							<span id="add-file" class="button">添加文件</span>
+							<span id="send-request" class="button">发送请求</span>
+						</p>
 					</div>
 				</div>
 				<div class="response" contenteditable="true"></div>
@@ -199,6 +204,7 @@
 		<script src="http://libs.baidu.com/jquery/2.0.0/jquery.min.js"></script>
 		<script>window.jQuery || document.write("<script src='js/jquery-1.7.1.min.js'>\<\/script>");</script>
 		<script type="text/javascript" src="js/beautify.js" ></script>
+		<script type="text/javascript" src="js/ajaxfileupload.js" ></script>
 		<script type="text/javascript">
 			$('.scrolltop').click(function(){
 				$('html,body').animate({scrollTop: 0}, 200);
@@ -206,6 +212,25 @@
 			
 			function delRow() {
 				$(this).parents("tr").fadeOut(200, function() { $(this).remove(); });
+			}
+			
+			function addFile() {
+				var i = $("#param-table tr").length;
+				$("#param-table").append($(
+					'<tr>'
+					+'	<td><input type="text" name="fileparam'+ i +'" id="fileparam'+ i +'" placeholder="文件域ID" /></td>'
+					+'	<td>'
+					+'		<input type="file" name="file'+ i +'" id="file'+ i +'"/>'
+					+'		<span class="del-param" title="删除参数">×</span>'
+					+'	</td>'
+					+'</tr>'
+				));
+				$("#fileparam" + i).focus();
+				$("#fileparam" + i).on("keyup", function() {
+					$("[name=file"+i+"]").attr("id", $(this).val());
+				});
+				$(".del-param").off("click", delRow).on("click", delRow);
+				$("#request-post").addClass("checked").siblings(".request-button").removeClass("checked");
 			}
 			
 			function addParam() {
@@ -224,6 +249,8 @@
 			}
 			$(".del-param").on("click", delRow);
 			$("#add-param").on("click", addParam);
+			$("#add-file").on("click", addFile);
+			
 			$(document).on({
 				"keyup": function(event) {
 					// Alt + = 组合键 或者 Alt + +组合键
@@ -238,18 +265,11 @@
 			});
 			
 			$(".request-button").on("click", function() {
-				if ($(".type-button.checked[data-id=JSONP]").length) {
-					$(".request-button[data-id=GET]").addClass("checked").siblings(".request-button").removeClass("checked");
-				} else {
-					$(this).addClass("checked").siblings(".request-button").removeClass("checked");
-				}
+				$(this).addClass("checked").siblings(".request-button").removeClass("checked");
 			});
 			
 			$(".type-button").on("click", function() {
 				$(this).addClass("checked").siblings(".type-button").removeClass("checked");
-				if ($(this).attr("data-id") == "JSONP") {
-					$(".request-button[data-id=GET]").addClass("checked").siblings(".request-button").removeClass("checked");
-				}
 			});
 			
 			var loadHtml = 
@@ -284,12 +304,8 @@
 				+'		</circle>'
 				+'	</svg>'
 				+'</div>';
-				
-			function sendRequest() {
-				var type = $(".request-button.checked").attr("data-id");
-				var url = $("#url").val().trim();
-				var dataType = $(".type-button.checked").attr("data-id");
-				
+			
+			function getParam() {
 				var params = {};
 				$.each($("#param-table tr"), function() {
 					if ($(this).index() == 0) {
@@ -302,29 +318,70 @@
 					var paramValue = $(this).find("[name^=value]").val();
 					params[paramName] = paramValue;
 				});
+				return params;
+			}
+			
+			function getFilesId() {
+				var fileIds = [];
+				$.each($("input[type=file]"), function() {
+					fileIds.push($(this).attr("id"));
+				});
+				return fileIds;
+			}
+			
+			function sendRequest() {
+				var type = $(".request-button.checked").attr("data-id");
+				var url = $("#url").val().trim();
+				var dataType = $(".type-button.checked").attr("data-id");
+				
+				var params = getParam();
 				var $response = $(".response");
 				if (!$(".loading").length) {
 					$response.prepend(loadHtml);
 				}
 				$(".loading").show();
-				$.ajax({
-					type:type,
-					url:url,
-					data:params,
-					dataType:dataType,
-					async:true,
-					success: function(data) {
-						$(".loading").hide();
-						var jsonStr = 
-						$response.empty().append(formatJsonStr(data));
-						console.log(jsBeautify(JSON.stringify(data), 1, "\t"));
-					},
-					error: function(err) {
-						$(".loading").hide();
-						console.log(err);
-						$response.empty().append(formatJsonStr(err));
-					}
-				});
+				parseUrl(url);
+				if ($("input[type=file]").length) {
+					//document.domain = url.match(/http[s]?:\/\/(.*?)([:\/]|$)/)[1];
+					var fileIds = getFilesId();
+					console.log(fileIds);
+					$.ajaxFileUpload({
+						url:url,
+						type:"POST",
+						dataType:"JSON",
+						data:params,
+						fileElementId:fileIds,
+						success: function(data) {
+							$(".loading").hide();
+							$response.empty().append(formatJsonStr(data));
+							console.log(jsBeautify(JSON.stringify(data), 1, "\t"));
+						},
+						error: function(err) {
+							$(".loading").hide();
+							console.log(err);
+							$response.empty().append(formatJsonStr(err));
+						}
+					});
+				} else {
+					// 普通请求
+					$.ajax({
+						type:type,
+						url:url,
+						data:params,
+						dataType:dataType,
+						async:true,
+						success: function(data) {
+							$(".loading").hide();
+							$response.empty().append(formatJsonStr(data));
+							console.log(jsBeautify(JSON.stringify(data), 1, "\t"));
+						},
+						error: function(err) {
+							$(".loading").hide();
+							console.log(err);
+							$response.empty().append(formatJsonStr(err));
+						}
+					});
+				}
 			}
 			
 			$("#send-request").on("click", sendRequest);
@@ -333,6 +390,10 @@
 				return jsBeautify(JSON.stringify(json), 4, "&nbsp;").replace(/\n/g, "<br/>");
 			}
 			
+			function parseUrl(url) {
+				var urls = url.split("/");
+				console.log(urls);
+			}
 		</script>
 	</body>
 
