@@ -151,6 +151,7 @@
 				word-wrap: break-word;
 				position: relative;
 				outline:0;
+				overflow-x: auto;
 			}
 			.loading {
 				text-align: center;margin-top:20px;display:none;
@@ -214,24 +215,20 @@
 			}
 			
 			function addFile() {
-				$("#add-file").off("click", addFile).css({"background":"#ccc","cursor":"not-allowed"});
 				var i = $("#param-table tr").length;
 				$("#param-table").append($(
 					'<tr>'
-					+'	<td><input type="text" name="fileparam" id="fileparam" placeholder="文件域ID" /></td>'
+					+'	<td><input type="text" name="fileparam" id="fileparam'+ i +'" placeholder="文件域name属性" /></td>'
 					+'	<td>'
-					+'		<input type="file" name="file" multiple="multiple"/>'
-					+'		<span class="del-param" id="delFile" title="删除文件">×</span>'
+					+'		<input type="file" name="file" id="file'+ i +'" multiple="multiple"/>'
+					+'		<span class="del-param" title="删除文件">×</span>'
 					+'	</td>'
 					+'</tr>'
 				));
-				$("#fileparam").on("keyup", function() {
-					$("input[type=file]").attr("name", $(this).val());
+				$("#fileparam" + i).on("keyup", function() {
+					$("#file" + i).attr("name", $(this).val());
 				});
-				$("#delFile").click(function() {
-					$("#add-file").on("click", addFile).css({"background":"#5589AB","cursor":"pointer"});
-				});
-				$("#fileparam").focus();
+				$("#fileparam" + i).focus();
 				$(".del-param").off("click", delRow).on("click", delRow);
 				$("#request-post").addClass("checked").siblings(".request-button").removeClass("checked");
 			}
@@ -261,7 +258,7 @@
 						addParam();
 						return;
 					}
-					if (event.keyCode == 13) {
+					if (event.ctrlKey && event.keyCode == 13) {
 						sendRequest();
 					}
 				}
@@ -336,17 +333,9 @@
 				}
 				$(".loading").show();
 				
-				if ($("input[type=file]").length && $("#fileparam").val()) {
+				if ($("input[type=file]").length) {
 					// 有文件
-					$("#paramForm").remove();
-					var form = "<form id='paramForm'>";
-					for (var p in params) {
-						form += "<input type='hidden' name='"+ p +"' value='"+ params[p] +"'/>";
-					}
-					$('body').append($(form));
-					$("#paramForm").hide();
-					$("#paramForm").append($("#param-table input[type=file]").clone());
-					$("#paramForm input[type=file]").get(0).files = $("#param-table input[type=file]").get(0).files;
+					createFileFormSubmit(params);
 					var formData = new FormData($("#paramForm").get(0));
 					
 					$.ajax({
@@ -358,8 +347,8 @@
     					processData: false,
 						success: function(data) {
 							$(".loading").hide();
+							console.log(data);
 							$response.empty().append(formatJsonStr(data));
-							console.log(jsBeautify(JSON.stringify(data), 1, "\t"));
 						},
 						error: function(err) {
 							$(".loading").hide();
@@ -388,6 +377,23 @@
 						}
 					});
 				}
+			}
+			
+			/**
+			 * 有文件时, 创建新的表单提交
+			 */
+			function createFileFormSubmit(params) {
+				$("#paramForm").remove();
+				var form = "<form id='paramForm'>";
+				for (var p in params) {
+					form += "<input type='hidden' name='"+ p +"' value='"+ params[p] +"'/>";
+				}
+				$('body').append($(form));
+				$("#paramForm").hide();
+				$("#paramForm").append($("#param-table input[type=file]").clone());
+				$("#paramForm input[type=file]").each(function(i, e) {
+					this.files = $("#param-table input[type=file]").get(i).files;
+				});
 			}
 			
 			$("#send-request").on("click", sendRequest);
